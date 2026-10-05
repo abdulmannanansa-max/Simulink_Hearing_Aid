@@ -1,0 +1,43 @@
+=== Simulink hearing aid -- verification report ===
+audiogram (dB HL) @ [250 500 1000 2000 4000 8000] Hz: [30 35 45 55 65 70]
+
+T0  Codegen-literal consistency (ha_params.m vs. the hardcoded Simulink-block literals)
+  [PASS] p.L (frame size) matches the literal 32 in ha_core_frame.m / ha_init_state.m  --  p.L = 32
+  [PASS] p.nb (band count) matches the literal 6 in ha_design.m / ha_init_state.m / ha_core_frame.m  --  p.nb = 6
+  [PASS] p.fir_order matches the literal 192 in ha_design.m / ha_init_state.m  --  p.fir_order = 192
+  [PASS] p.afc_len matches the literal 64 in ha_init_state.m / ha_core_frame.m  --  p.afc_len = 64
+  [PASS] p.fb_len matches the literal 48 in ha_design.m  --  p.fb_len = 48
+  [PASS] p.afc_pwc stays length 3 (ha_init_state.m sizes st.zy/st.zd from it)  --  numel = 3
+
+T1  Filterbank & latency
+  [PASS] perfect reconstruction (sum of bands = pure delay)  --  max error 1.39e-17
+  [PASS] total latency < 10 ms  --  8.0 ms (filter 6.0 + frame 2.0)
+
+T2  Prescription accuracy (65 dB SPL speech-shaped noise, compression on, NR/AFC off)
+  [PASS] measured gain within +/-3 dB of NAL-R target in all bands  --  max |error| = 1.66 dB
+     target : [0 10 22 22.9 24.8 25.9] dB
+     measured: [0.6 9.5 20.3 21.7 23.6 25] dB
+
+T3  Compression ratio (level sweep, per band)
+  [PASS] measured CR within +/-0.35 of programmed CR (bands with >=3 points above knee)  --  measured [1.56 1.76 2.02 2.22 2.54 2.55] vs programmed [1.5 1.7 2 2.2 2.5 2.5]
+
+T4  Maximum power output (MPO) protection
+  [PASS] peak output never exceeds the MPO ceiling for a 105 dB SPL input  --  peak 0.322 <= ceiling 0.447  (105.0 dB SPL equiv. rms)
+
+T5  Noise reduction (speech + speech-shaped noise, shadow-filter SNR measurement)
+     speech source: Counting-16-44p1-mono-15secs.wav
+  [PASS] NR raises output SNR by >= 2 dB at +0 dB input SNR, speech loss <= 4 dB  --  SNR -7.7 -> -1.6 dB (+6.1);  noise -7.6 dB, speech -1.5 dB
+  [PASS] NR raises output SNR by >= 2 dB at +5 dB input SNR, speech loss <= 4 dB  --  SNR -4.7 -> 1.7 dB (+6.4);  noise -7.5 dB, speech -1.1 dB
+
+T6  Acoustic feedback: howling and adaptive feedback cancellation (AFC)
+  [PASS] without AFC the loop howls (a band >= +6 dB above the no-feedback reference)  --  worst band +6.3 dB
+  [PASS] with AFC the loop is stable (all bands within +3 dB of reference)  --  worst band +0.0 dB
+     (info) feedback-signal cancellation depth above 1.5 kHz: 1.8 dB (speech-correlation bias limits this)
+  [PASS] AFC is transparent when there is no feedback (output change < -10 dB re signal)  --  -27.0 dB
+     added stable gain (ASG): scale the feedback path until the loop howls, with and without AFC
+  [PASS] AFC gives added stable gain >= 10 dB  --  max stable path gain re nominal: -10 dB (AFC off) vs +10 dB (AFC on) => ASG = 20 dB
+
+T7  Aided vs unaided audibility of 65 dB SPL speech (simplified SII-like index)
+  [PASS] audibility index improves by >= 0.20 with the aid  --  unaided 0.34 -> aided 0.70
+
+SUMMARY: 18 passed, 0 failed

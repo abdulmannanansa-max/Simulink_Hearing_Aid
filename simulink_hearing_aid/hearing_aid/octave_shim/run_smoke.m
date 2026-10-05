@@ -1,0 +1,13 @@
+addpath('..');
+p = ha_design_all();
+disp('band centres  :'); disp(round(p.fcen));
+disp('NAL-R target  :'); disp(round(p.tgt*10)/10);
+disp('Lref (dB SPL) :'); disp(round(p.Lref*10)/10);
+disp('G0 (dB)       :'); disp(round(p.G0*10)/10);
+S = sum(p.hb,1); d = zeros(size(S)); d(p.fir_order/2+1)=1;
+printf('PR error = %g\n', max(abs(S-d)));
+x = ha_make_test_speech(6, p);
+printf('speech dB SPL = %.1f\n', 20*log10(sqrt(mean(x.^2)))+p.cal_dB);
+q = p; q.fb_on = false;
+tic; [y, info] = ha_simulate(x, q); t=toc;
+printf('open loop: out %.1f dB SPL, sim %.1f s\n', 20*log10(sqrt(mean(y.^2)))+p.cal_dB, t);
